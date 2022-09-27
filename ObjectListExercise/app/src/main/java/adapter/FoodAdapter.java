@@ -51,8 +51,8 @@ public class FoodAdapter extends BaseAdapter {
 		textFoodEta = view.findViewById(R.id.textFoodEta);
 
 		textFoodName.setText(food.getName());
-		textFoodRating.setText("Rating: " + String.valueOf(food.getRating()));
-		textFoodEta.setText("Estimated arrival: " + String.valueOf(food.getEta()) + " minutes");
+		textFoodRating.setText("Rating: " + food.getRating());
+		textFoodEta.setText("Estimated arrival: " + food.getEta() + " minutes");
 
 		return view;
 	}
