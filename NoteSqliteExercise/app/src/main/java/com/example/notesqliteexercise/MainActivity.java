@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.DialogInterface;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.view.ContextMenu;
@@ -24,9 +23,9 @@ import java.util.Date;
 import adapter.NotesAdapter;
 import entity.NotesEntity;
 import models.Notes;
+import utils.ListViewHelper;
 
 public class MainActivity extends AppCompatActivity {
-	private ListView listNotes;
 	private Cursor currCursor;
 	private NotesAdapter adapter;
 
@@ -35,25 +34,24 @@ public class MainActivity extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		listNotes = findViewById(R.id.listNotes);
+		ListView listNotes = findViewById(R.id.listNotes);
 		currCursor = NotesEntity.getCursor(this.getApplicationContext());
-		adapter = new NotesAdapter(this, currCursor);
+		adapter = new NotesAdapter(this.getApplicationContext(), currCursor, false, this);
 		listNotes.setAdapter(adapter);
+		ListViewHelper.GetListViewSize(listNotes);
 
 		registerForContextMenu(listNotes);
 
-		listNotes.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-			@Override
-			public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-				currCursor.moveToPosition(i);
+		listNotes.setOnItemClickListener((adapterView, view, i, l) -> {
+			currCursor.moveToPosition(i);
 
-				Notes note = new Notes();
+			Notes note = new Notes();
 
-				note.setData(currCursor);
+			note.setData(currCursor);
 
-				showDetailDialogue(note);
-			}
+			showDetailDialogue(note);
 		});
+
 	}
 
 	@Override
@@ -83,17 +81,17 @@ public class MainActivity extends AppCompatActivity {
 		Notes currentNote = new Notes();
 		currentNote.setData(currCursor);
 
-		switch (item.getItemId())
+		int itemID = item.getItemId();
+
+		if (itemID == R.id.editNote)
 		{
-			case R.id.editNote:
-				showNoteDialogue(currentNote);
-				return true;
-			case R.id.deleteNote:
-				showDeleteConfirmation(currentNote.getId());
-				return true;
-			default:
-				return super.onContextItemSelected(item);
+			showNoteDialogue(currentNote);
 		}
+		else
+		{
+			showDeleteConfirmation(currentNote.getId());
+		}
+		return true;
 	}
 
 	@Override
@@ -108,20 +106,12 @@ public class MainActivity extends AppCompatActivity {
 		builder.setTitle("Confirmation");
 		builder.setMessage("Would you like to delete the selected note?\nThis action cannot be undone!");
 
-		builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
-			@Override
-			public void onClick(DialogInterface dialogInterface, int i) {
-				dialogInterface.cancel();
-			}
-		});
+		builder.setNegativeButton("No", (dialogInterface, i) -> dialogInterface.cancel());
 
-		builder.setPositiveButton("Yes, Delete", new DialogInterface.OnClickListener() {
-			@Override
-			public void onClick(DialogInterface dialogInterface, int i) {
-				NotesEntity.delete(id, getApplicationContext());
-				Toast.makeText(getApplicationContext(), "Note Deleted!", Toast.LENGTH_SHORT).show();
-				updateCursor();
-			}
+		builder.setPositiveButton("Yes, Delete Note", (dialogInterface, i) -> {
+			NotesEntity.delete(id, getApplicationContext());
+			Toast.makeText(getApplicationContext(), "Note Deleted!", Toast.LENGTH_SHORT).show();
+			updateCursor();
 		});
 
 		builder.show();
@@ -151,42 +141,34 @@ public class MainActivity extends AppCompatActivity {
 
 		builder.setView(v);
 
-		builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
-			@Override
-			public void onClick(DialogInterface dialogInterface, int i) {
-				if (headerText.getText().toString().isEmpty() && contentText.getText().toString().isEmpty())
-				{
-					Toast.makeText(MainActivity.this, "Empty field, Note creation/updating aborted!", Toast.LENGTH_SHORT).show();
-					return;
-				}
-				String header = headerText.getText().toString();
-				String content = contentText.getText().toString();
-				boolean important = importantSwitch.isChecked();
-
-				if (note != null)
-				{
-					note.setHeader(header);
-					note.setContent(content);
-					note.setImportant(important);
-
-					NotesEntity.update(note, getApplicationContext());
-				}
-				else
-				{
-					Notes notes = new Notes(header, content, important, new Date());
-					NotesEntity.insert(notes, getApplicationContext());
-				}
-				Toast.makeText(MainActivity.this, "Saved!", Toast.LENGTH_SHORT).show();
-				updateCursor();
+		builder.setPositiveButton("Save", (dialogInterface, i) -> {
+			if (headerText.getText().toString().isEmpty() && contentText.getText().toString().isEmpty())
+			{
+				Toast.makeText(MainActivity.this, "Empty field, Note creation/updating aborted!", Toast.LENGTH_SHORT).show();
+				return;
 			}
+			String header = headerText.getText().toString();
+			String content = contentText.getText().toString();
+			boolean important = importantSwitch.isChecked();
+
+			if (note != null)
+			{
+				note.setHeader(header);
+				note.setContent(content);
+				note.setImportant(important);
+
+				NotesEntity.update(note, getApplicationContext());
+			}
+			else
+			{
+				Notes notes = new Notes(header, content, important, new Date());
+				NotesEntity.insert(notes, getApplicationContext());
+			}
+			Toast.makeText(MainActivity.this, "Saved!", Toast.LENGTH_SHORT).show();
+			updateCursor();
 		});
 
-		builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-			@Override
-			public void onClick(DialogInterface dialogInterface, int i) {
-				dialogInterface.dismiss();
-			}
-		});
+		builder.setNegativeButton("Cancel", (dialogInterface, i) -> dialogInterface.dismiss());
 
 		builder.show();
 	}
@@ -197,11 +179,12 @@ public class MainActivity extends AppCompatActivity {
 
 		builder.setTitle("Note details");
 
-		StringBuilder sb = new StringBuilder();
+		StringBuilder sb;
+		sb = new StringBuilder();
 
-		sb.append("Note name: " + note.getHeader());
+		sb.append("Note name: ").append(note.getHeader());
 		sb.append("\n");
-		sb.append("Created on: " + note.getCreatedDate());
+		sb.append("Created on: ").append(note.getCreatedDate());
 		sb.append("\n");
 		sb.append(note.getContent());
 
@@ -209,12 +192,7 @@ public class MainActivity extends AppCompatActivity {
 
 		builder.setMessage(details);
 
-		builder.setPositiveButton("Okay", new DialogInterface.OnClickListener() {
-			@Override
-			public void onClick(DialogInterface dialogInterface, int i) {
-				dialogInterface.cancel();
-			}
-		});
+		builder.setPositiveButton("Okay", (dialogInterface, i) -> dialogInterface.cancel());
 
 		builder.show();
 	}

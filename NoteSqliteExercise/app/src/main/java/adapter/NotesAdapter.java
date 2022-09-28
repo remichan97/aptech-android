@@ -17,16 +17,15 @@ public class NotesAdapter extends CursorAdapter {
 
 	Activity activity;
 
-	public NotesAdapter(Activity activity, Cursor cursor)
-	{
-		super(activity, cursor);
-		this.activity = activity;
+	public NotesAdapter(Context context, Cursor c, boolean autoRequery, Activity activity) {
+		super(context, c, autoRequery);
+		this.activity =  activity;
 	}
+
 
 	@Override
 	public View newView(Context context, Cursor cursor, ViewGroup viewGroup) {
-		View v = activity.getLayoutInflater().inflate(R.layout.notes_layout, null);
-		return v;
+		return activity.getLayoutInflater().inflate(R.layout.notes_layout, null);
 	}
 
 	@Override
